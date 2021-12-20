@@ -29,9 +29,9 @@ func newRouter(log *log.Helper, srv *Server) *Router {
 		log: log,
 	}
 
-	r.pool.New = func() interface{} {
-		return NewRouterContext(r)
-	}
+	//r.pool.New = func() interface{} {
+	//	return NewRouterContext(r)
+	//}
 
 	return r
 }

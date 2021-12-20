@@ -101,10 +101,10 @@ type Server struct {
 	Packer   packing.Packer // Packer is the message packer, will be passed to session.
 	Codec    encoding.Codec // Codec is the message codec, will be passed to session.
 	callback Handler
-	router   *Router
 	log      *log.Helper
 	ms       []middleware.Middleware
 	serveWG  sync.WaitGroup
+	pool     *sync.Pool
 }
 
 // NewServer creates an TCP server by options.
@@ -122,13 +122,13 @@ func NewServer(handler Handler, opts ...ServerOption) *Server {
 		Packer:                packing.NewDefaultPacker(),
 		Codec:                 proto.New(),
 		callback:              handler,
-		serveWG:               sync.WaitGroup{},
 		log:                   log.NewHelper(log.DefaultLogger),
+		serveWG:               sync.WaitGroup{},
+		pool:                  &sync.Pool{New: func() interface{} { return NewRouterContext() }},
 	}
 
 	logger := log.NewHelper(log.DefaultLogger)
 	srv.log = logger
-	srv.router = newRouter(logger, srv)
 
 	for _, o := range opts {
 		o(srv)
@@ -210,7 +210,7 @@ func (s *Server) handleRawConn(conn net.Conn) {
 
 	doneChan := make(chan struct{}, 2)
 
-	go sess.readInbound(ctx, doneChan, s.router, s.readTimeout)
+	go sess.readInbound(ctx, doneChan, s, s.readTimeout)
 	go sess.writeOutbound(ctx, doneChan, s.writeTimeout, s.writeAttemptTimes)
 
 	s.callback.OnConnect(sess)
@@ -232,6 +232,6 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // AddRoute registers message handler and middlewares to the router.
-func (s *Server) AddRoute(msgID uint32, handler HandlerFunc) {
-	s.router.register(msgID, handler)
-}
+//func (s *Server) AddRoute(msgID uint32, handler HandlerFunc) {
+//	s.router.register(msgID, handler)
+//}

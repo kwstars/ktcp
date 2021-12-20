@@ -10,7 +10,9 @@ import (
 	"github.com/kwstars/ktcp/sync/atomic"
 )
 
-type UserService struct{}
+type UserService struct {
+	uid uint32
+}
 
 //func (s *UserService) CreateRole(ctx context.Context, req *pb.CreateRoleResponse) (*pb.CreateRoleResponse, error) {
 //	panic("implement me")
@@ -40,9 +42,10 @@ func (s *UserService) OnClose(c *ktcp.Session) {
 }
 
 func (s *UserService) OnMessage(ctx ktcp.Context) {
-	fmt.Println("on userService message", ctx.GetSession().ID())
+	fmt.Printf("on userService message %v, uid: %v\n", ctx.GetSession().ID(), s.uid)
 
-	ctx.GetRouter().Handle(ctx)
+	pb.Router(ctx, s)
+	//ctx.GetRouter().Handle(ctx)
 }
 
 type Gate struct {
@@ -67,7 +70,14 @@ func (s *Gate) OnMessage(ctx ktcp.Context) {
 
 	// TODO 登陆成功 forward
 	user := &UserService{}
-	pb.RegisterUserServiceKTCPServer(s.Server, user)
+	if s.Count.Get() == 1 {
+		user.uid = 1
+	} else if s.Count.Get() == 2 {
+		user.uid = 2
+	} else {
+		user.uid = 3
+	}
+	//pb.RegisterUserServiceKTCPServer(s.Server, user)
 	ctx.ForwardHandler(user)
 }
 

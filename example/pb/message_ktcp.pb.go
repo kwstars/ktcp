@@ -6,6 +6,8 @@ package pb
 
 import (
 	context "context"
+	"fmt"
+
 	errors "github.com/go-kratos/kratos/v2/errors"
 	ktcp "github.com/kwstars/ktcp"
 	packing "github.com/kwstars/ktcp/packing"
@@ -22,44 +24,80 @@ type UserServiceKTCPServer interface {
 }
 
 func RegisterUserServiceKTCPServer(s *ktcp.Server, srv UserServiceKTCPServer) {
-	s.AddRoute(uint32(ID_ID_LOGIN_REQUEST), _UserService_Login0_KTCP_Handler(srv))
-	s.AddRoute(uint32(ID_ID_CREATE_ROLE_REQUEST), _UserService_CreateRole0_KTCP_Handler(srv))
+	//s.AddRoute(uint32(ID_ID_LOGIN_REQUEST), _UserService_Login0_KTCP_Handler)
+	//s.add(uint32(ID_ID_CREATE_ROLE_REQUEST), _UserService_CreateRole0_KTCP_Handler(srv))
+	//s.Exec((uint32(ID_ID_CREATE_ROLE_REQUEST),_UserService_CreateRole0_KTCP_Handler(srv)))
 }
 
-func _UserService_Login0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
-	return func(ctx ktcp.Context) error {
-		var in LoginRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Login(ctx, req.(*LoginRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
-		}
-		reply := out.(*LoginResponse)
-		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
+type MyRouter struct {
+}
+
+type HandlerFunc func(ctx ktcp.Context, srv UserServiceKTCPServer) error
+
+var (
+	mux map[uint32]HandlerFunc
+)
+
+func init() {
+	mux = make(map[uint32]HandlerFunc)
+	mux[uint32(ID_ID_LOGIN_REQUEST)] = _UserService_Login0_KTCP_Handler
+	mux[uint32(ID_ID_CREATE_ROLE_REQUEST)] = _UserService_CreateRole0_KTCP_Handler
+}
+
+func NewRouter() {
+
+}
+
+func Router(ctx ktcp.Context, u UserServiceKTCPServer) {
+	reqMsg := ctx.GetReqMsg()
+
+	if reqMsg == nil {
+		return
+	}
+	var h HandlerFunc
+	if v, exist := mux[reqMsg.ID]; exist {
+		h = v
+	} else {
+		fmt.Println("router not found id: %d, idType: %T", reqMsg.ID, reqMsg.ID)
+		return
+	}
+	//TODO 中间件 recover  log tracing
+	if err := h(ctx, u); err != nil {
+		//r.srv.ene(ctx, err)
+		fmt.Println("handle err: %v", err)
 	}
 }
 
-func _UserService_CreateRole0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
-	return func(ctx ktcp.Context) error {
-		var in CreateRoleRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.CreateRole(ctx, req.(*CreateRoleRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
-		}
-		reply := out.(*CreateRoleResponse)
-		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
+func _UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+	var in LoginRequest
+	if err := ctx.Bind(&in); err != nil {
+		return err
 	}
+	h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.Login(ctx, req.(*LoginRequest))
+	})
+	out, err := h(ctx, &in)
+	if err != nil {
+		se := errors.FromError(err)
+		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
+	}
+	reply := out.(*LoginResponse)
+	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
+}
+
+func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+	var in CreateRoleRequest
+	if err := ctx.Bind(&in); err != nil {
+		return err
+	}
+	h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.CreateRole(ctx, req.(*CreateRoleRequest))
+	})
+	out, err := h(ctx, &in)
+	if err != nil {
+		se := errors.FromError(err)
+		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
+	}
+	reply := out.(*CreateRoleResponse)
+	return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
 }

@@ -87,7 +87,7 @@ func (s *Session) Close() {
 }
 
 // readInbound reads message packet from connection in a loop.
-func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, router *Router, timeout time.Duration) {
+func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, srv *Server, timeout time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -115,10 +115,10 @@ func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, rou
 
 			// handle request
 			go func() {
-				routerCtx := router.pool.Get().(Context)
+				routerCtx := srv.pool.Get().(Context)
 				routerCtx.Reset(s, reqMsg)
 				s.callback.OnMessage(routerCtx)
-				router.pool.Put(routerCtx)
+				srv.pool.Put(routerCtx)
 			}()
 		}
 	}

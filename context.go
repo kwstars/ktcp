@@ -18,7 +18,7 @@ type Context interface {
 	context.Context
 	GetSession() *Session
 	ForwardHandler(c CallBack)
-	GetRouter() *Router
+	//GetRouter() *Router
 	GetReqMsg() *message.Message
 	Bind(v interface{}) error
 	Response() *message.Message
@@ -28,7 +28,6 @@ type Context interface {
 }
 
 type RouterCtx struct {
-	router  *Router
 	session *Session
 	reqMsg  *message.Message
 	respMsg *message.Message
@@ -51,10 +50,8 @@ func (c *RouterCtx) Value(key interface{}) interface{} {
 }
 
 // NewRouterContext returns a new Context for the given request and response.
-func NewRouterContext(r *Router) *RouterCtx {
-	return &RouterCtx{
-		router: r,
-	}
+func NewRouterContext() *RouterCtx {
+	return &RouterCtx{}
 }
 
 func (c *RouterCtx) GetReqMsg() *message.Message {
@@ -65,9 +62,9 @@ func (c *RouterCtx) GetRespMsg() *message.Message {
 	return c.respMsg
 }
 
-func (c *RouterCtx) GetRouter() *Router {
-	return c.router
-}
+//func (c *RouterCtx) GetRouter() *Router {
+//	return c.router
+//}
 
 func (c *RouterCtx) ForwardHandler(callback CallBack) {
 	c.session.callback = callback
@@ -80,7 +77,7 @@ func (c *RouterCtx) Reset(sess *Session, reqMsg *message.Message) {
 }
 
 func (c *RouterCtx) Middleware(h middleware.Handler) middleware.Handler {
-	return middleware.Chain(c.router.srv.ms...)(h)
+	return middleware.Chain()(h)
 }
 
 func (c *RouterCtx) GetSession() *Session {
