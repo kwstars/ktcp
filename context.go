@@ -18,7 +18,6 @@ type Context interface {
 	context.Context
 	GetSession() *Session
 	ForwardHandler(c CallBack)
-	//GetRouter() *Router
 	GetReqMsg() *message.Message
 	Bind(v interface{}) error
 	Response() *message.Message
@@ -28,9 +27,6 @@ type Context interface {
 }
 
 type routerCtx struct {
-	//mu sync.RWMutex
-	//router  *Router
-	//storage map[string]interface{}
 	session *Session
 	reqMsg  *message.Message
 	respMsg *message.Message
