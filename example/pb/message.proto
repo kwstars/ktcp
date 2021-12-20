@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/kwstars/ktcp/example/pb;pb";
+
+enum ID {
+  ID_UNSPECIFIED = 0;
+  ID_LOGIN_REQ = 1;
+  ID_LOGIN_RESP = 2;
+  ID_CREATE_ROLE_REQ = 3;
+  ID_CREATE_ROLE_RESP = 4;
+}
+
+service UserService {
+  rpc Login (LoginReq) returns (LoginResp){}                  // 登陆
+  rpc CreateRole (CreateRoleReq) returns (CreateRoleResp){}   // 创建角色
+}
+
+message LoginReq {
+  string token = 1;
+}
+
+message LoginResp {
+  uint32 sid = 1;
+}
+
+message CreateRoleReq {
+  string name = 1;
+  uint32 type = 2;
+  map<int32, string> props = 3;
+}
+
+message CreateRoleResp {
+  uint32 sid = 1;
+}

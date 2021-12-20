@@ -1,0 +1,31 @@
+version: v1
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX
+    - FIELD_LOWER_SNAKE_CASE
+    - SERVICE_SUFFIX
+  ignore:
+    - google/api/annotations.proto
+    - google/api/http.proto
+    - google/protobuf/any.proto
+    - google/protobuf/api.proto
+    - google/protobuf/compiler/plugin.proto
+    - google/protobuf/descriptor.proto
+    - google/protobuf/duration.proto
+    - google/protobuf/empty.proto
+    - google/protobuf/field_mask.proto
+    - google/protobuf/source_context.proto
+    - google/protobuf/struct.proto
+    - google/protobuf/timestamp.proto
+    - google/protobuf/type.proto
+    - google/protobuf/type.proto
+    - google/protobuf/wrappers.proto
+    - protoc-gen-openapiv2/options/openapiv2.proto
+    - validate/validate.proto
+    - google/api/httpbody.proto
+    - protoc-gen-openapiv2/options/annotations.proto
+breaking:
+  use:
+    - FILE
