@@ -20,7 +20,7 @@ type {{.ServiceType}}KTCPServer interface {
 
 var handleFunctions = map[uint32]handlerFunc{
 {{- range .Methods}}
-	uint32({{.ProtocolRespID}}):       _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler,
+	uint32({{.ProtocolReqID}}):       _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler,
 {{- end}}
 }
 

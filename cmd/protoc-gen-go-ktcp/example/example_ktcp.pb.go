@@ -26,8 +26,8 @@ type UserServiceKTCPServer interface {
 }
 
 var handleFunctions = map[uint32]handlerFunc{
-	uint32(ID_ID_LOGIN_RESPONSE):       _UserService_Login0_KTCP_Handler,
-	uint32(ID_ID_CREATE_ROLE_RESPONSE): _UserService_CreateRole0_KTCP_Handler,
+	uint32(ID_ID_LOGIN_REQUEST):       _UserService_Login0_KTCP_Handler,
+	uint32(ID_ID_CREATE_ROLE_REQUEST): _UserService_CreateRole0_KTCP_Handler,
 }
 
 func Router(ctx ktcp.Context, srv UserServiceKTCPServer) (err error) {

@@ -18,27 +18,27 @@ var _ = new(errors.Error)
 var _ = new(ktcp.Server)
 var _ = new(packing.Packer)
 
+type handlerFunc func(ctx ktcp.Context, srv UserServiceKTCPServer) error
+
 type UserServiceKTCPServer interface {
 	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 }
 
-type handlerFunc func(ctx ktcp.Context, srv UserServiceKTCPServer) error
-
-var handleFunces = map[uint32]handlerFunc{
-	uint32(ID_ID_LOGIN_REQUEST):       UserService_Login0_KTCP_Handler,
-	uint32(ID_ID_CREATE_ROLE_REQUEST): UserService_CreateRole0_KTCP_Handler,
+var handleFunctions = map[uint32]handlerFunc{
+	uint32(ID_ID_LOGIN_REQUEST):       _UserService_Login0_KTCP_Handler,
+	uint32(ID_ID_CREATE_ROLE_REQUEST): _UserService_CreateRole0_KTCP_Handler,
 }
 
 func Router(ctx ktcp.Context, srv UserServiceKTCPServer) (err error) {
-	if f, exist := handleFunces[uint32(ctx.GetReqMsg().ID)]; !exist {
+	if f, exist := handleFunctions[uint32(ctx.GetReqMsg().ID)]; !exist {
 		return fmt.Errorf("not found handler func for %v", ctx.GetReqMsg().ID)
 	} else {
 		return f(ctx, srv)
 	}
 }
 
-func UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+func _UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
 	var in LoginRequest
 	if err := ctx.Bind(&in); err != nil {
 		return err
@@ -55,7 +55,7 @@ func UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer
 	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
 }
 
-func UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
 	var in CreateRoleRequest
 	if err := ctx.Bind(&in); err != nil {
 		return err
