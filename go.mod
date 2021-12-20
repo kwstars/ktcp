@@ -13,9 +13,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/pinzolo/casee v0.0.0-20210416022938-38877fea886d // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20210816074244-15123e1e1f71 // indirect
 	google.golang.org/genproto v0.0.0-20210805201207-89edb61ffb67 // indirect

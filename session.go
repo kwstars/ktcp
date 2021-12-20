@@ -3,14 +3,15 @@ package ktcp
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/kwstars/ktcp/encoding"
 	"github.com/kwstars/ktcp/message"
 	"github.com/kwstars/ktcp/packing"
 	"github.com/kwstars/ktcp/sync/atomic"
 	"github.com/segmentio/ksuid"
-	"net"
-	"time"
 )
 
 const (
@@ -115,7 +116,7 @@ func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, rou
 			// handle request
 			go func() {
 				routerCtx := router.pool.Get().(Context)
-				routerCtx.Reset(s, reqMsg, nil)
+				routerCtx.Reset(s, reqMsg)
 				s.callback.OnMessage(routerCtx)
 				router.pool.Put(routerCtx)
 			}()
