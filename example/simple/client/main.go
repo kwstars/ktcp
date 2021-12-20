@@ -4,10 +4,9 @@ import (
 	"net"
 	"time"
 
-	v1 "github.com/kwstars/ktcp/example/pb"
-
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/kwstars/ktcp/encoding/proto"
+	v1 "github.com/kwstars/ktcp/example/pb"
 	"github.com/kwstars/ktcp/message"
 	"github.com/kwstars/ktcp/packing"
 	"github.com/sirupsen/logrus"

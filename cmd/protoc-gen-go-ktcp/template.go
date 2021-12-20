@@ -9,36 +9,45 @@ import (
 var ktcpTemplate = `
 {{$svrType := .ServiceType}}
 {{$svrName := .ServiceName}}
+
+type handlerFunc func(ctx ktcp.Context, srv {{.ServiceType}}KTCPServer) error
+
 type {{.ServiceType}}KTCPServer interface {
 {{- range .MethodSets}}
 	{{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
 {{- end}}
 }
 
-func Register{{.ServiceType}}KTCPServer(s *ktcp.Server, srv {{.ServiceType}}KTCPServer) {
-	{{- range .Methods}}
-	s.AddRoute(uint32({{.ProtocolReqID}}), _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler(srv))
-	{{- end}}
+var handleFunctions = map[uint32]handlerFunc{
+{{- range .Methods}}
+	uint32({{.ProtocolRespID}}):       _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler,
+{{- end}}
+}
+
+func Router(ctx ktcp.Context, srv {{.ServiceType}}KTCPServer) (err error) {
+	if f, exist := handleFunctions[uint32(ctx.GetReqMsg().ID)]; !exist {
+		return fmt.Errorf("not found handler func for %v", ctx.GetReqMsg().ID)
+	} else {
+		return f(ctx, srv)
+	}
 }
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler(srv {{$svrType}}KTCPServer) func(ctx ktcp.Context) error {
-	return func(ctx ktcp.Context) error {
-		var in {{.Request}}
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			se := errors.FromError(err)
-			return ctx.Send(uint32({{.ProtocolRespID}}), packing.ErrType, se)
-		}
-		reply := out.(*{{.Reply}})
-		return ctx.Send(uint32({{.ProtocolRespID}}), packing.OKType, reply)
+func _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler(ctx ktcp.Context, srv {{$svrType}}KTCPServer) error {
+	var in {{.Request}}
+	if err := ctx.Bind(&in); err != nil {
+		return err
 	}
+	h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.{{.Name}}(ctx, req.(*{{.Request}}))
+	})
+	out, err := h(ctx, &in)
+	if err != nil {
+		se := errors.FromError(err)
+		return ctx.Send(uint32({{.ProtocolRespID}}), packing.ErrType, se)
+	}
+	reply := out.(*{{.Reply}})
+	return ctx.Send(uint32({{.ProtocolRespID}}), packing.OKType, reply)
 }
 {{end}}
 

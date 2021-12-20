@@ -6,6 +6,8 @@ package example
 
 import (
 	context "context"
+	"fmt"
+
 	errors "github.com/go-kratos/kratos/v2/errors"
 	ktcp "github.com/kwstars/ktcp"
 	packing "github.com/kwstars/ktcp/packing"
@@ -16,50 +18,56 @@ var _ = new(errors.Error)
 var _ = new(ktcp.Server)
 var _ = new(packing.Packer)
 
+type handlerFunc func(ctx ktcp.Context, srv UserServiceKTCPServer) error
+
 type UserServiceKTCPServer interface {
 	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 }
 
-func RegisterUserServiceKTCPServer(s *ktcp.Server, srv UserServiceKTCPServer) {
-	s.AddRoute(uint32(ID_ID_LOGIN_REQUEST), _UserService_Login0_KTCP_Handler(srv))
-	s.AddRoute(uint32(ID_ID_CREATE_ROLE_REQUEST), _UserService_CreateRole0_KTCP_Handler(srv))
+var handleFunctions = map[uint32]handlerFunc{
+	uint32(ID_ID_LOGIN_RESPONSE):       _UserService_Login0_KTCP_Handler,
+	uint32(ID_ID_CREATE_ROLE_RESPONSE): _UserService_CreateRole0_KTCP_Handler,
 }
 
-func _UserService_Login0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
-	return func(ctx ktcp.Context) error {
-		var in LoginRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Login(ctx, req.(*LoginRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
-		}
-		reply := out.(*LoginResponse)
-		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
+func Router(ctx ktcp.Context, srv UserServiceKTCPServer) (err error) {
+	if f, exist := handleFunctions[uint32(ctx.GetReqMsg().ID)]; !exist {
+		return fmt.Errorf("not found handler func for %v", ctx.GetReqMsg().ID)
+	} else {
+		return f(ctx, srv)
 	}
 }
 
-func _UserService_CreateRole0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
-	return func(ctx ktcp.Context) error {
-		var in CreateRoleRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.CreateRole(ctx, req.(*CreateRoleRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
-		}
-		reply := out.(*CreateRoleResponse)
-		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
+func _UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+	var in LoginRequest
+	if err := ctx.Bind(&in); err != nil {
+		return err
 	}
+	h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.Login(ctx, req.(*LoginRequest))
+	})
+	out, err := h(ctx, &in)
+	if err != nil {
+		se := errors.FromError(err)
+		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
+	}
+	reply := out.(*LoginResponse)
+	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
+}
+
+func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
+	var in CreateRoleRequest
+	if err := ctx.Bind(&in); err != nil {
+		return err
+	}
+	h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.CreateRole(ctx, req.(*CreateRoleRequest))
+	})
+	out, err := h(ctx, &in)
+	if err != nil {
+		se := errors.FromError(err)
+		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
+	}
+	reply := out.(*CreateRoleResponse)
+	return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
 }
