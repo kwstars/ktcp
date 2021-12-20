@@ -6,31 +6,31 @@ option go_package = "github.com/kwstars/ktcp/cmd/protoc-gen-go-ktcp/example;exam
 
 enum ID {
   ID_UNSPECIFIED = 0;
-  ID_LOGIN_REQ = 1;
-  ID_LOGIN_RESP = 2;
-  ID_CREATE_ROLE_REQ = 3;
-  ID_CREATE_ROLE_RESP = 4;
+  ID_LOGIN_REQUEST = 1;
+  ID_LOGIN_RESPONSE = 2;
+  ID_CREATE_ROLE_REQUEST = 3;
+  ID_CREATE_ROLE_RESPONSE = 4;
 }
 
 service UserService {
-  rpc Login (LoginReq) returns (LoginResp){}                  // 登陆
-  rpc CreateRole (CreateRoleReq) returns (CreateRoleResp){}   // 创建角色
+  rpc Login (LoginRequest) returns (LoginResponse){}                  // 登陆
+  rpc CreateRole (CreateRoleRequest) returns (CreateRoleResponse){}   // 创建角色
 }
 
-message LoginReq {
+message LoginRequest {
   string token = 1;
 }
 
-message LoginResp {
+message LoginResponse {
   uint32 sid = 1;
 }
 
-message CreateRoleReq {
+message CreateRoleRequest {
   string name = 1;
   uint32 type = 2;
   map<int32, string> props = 3;
 }
 
-message CreateRoleResp {
+message CreateRoleResponse {
   uint32 sid = 1;
 }

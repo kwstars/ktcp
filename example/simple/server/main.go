@@ -4,21 +4,32 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kwstars/ktcp/example/pb"
-
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/kwstars/ktcp"
+	"github.com/kwstars/ktcp/example/pb"
 	"github.com/kwstars/ktcp/sync/atomic"
 )
 
 type UserService struct{}
 
-func (s *UserService) CreateRole(ctx context.Context, req *pb.CreateRoleReq) (*pb.CreateRoleResp, error) {
+//func (s *UserService) CreateRole(ctx context.Context, req *pb.CreateRoleResponse) (*pb.CreateRoleResponse, error) {
+//	panic("implement me")
+//}
+//
+//func (s *UserService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+//	return &pb.LoginResponse{
+//		Sid: 111111,
+//	}, nil
+//
+//	//return nil, pb.ErrorUserNotFound("not found user %v", "123123123")
+//}
+
+func (s *UserService) CreateRole(ctx context.Context, request *pb.CreateRoleRequest) (*pb.CreateRoleResponse, error) {
 	panic("implement me")
 }
 
-func (s *UserService) Login(ctx context.Context, req *pb.LoginReq) (*pb.LoginResp, error) {
-	return &pb.LoginResp{
+func (s *UserService) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
+	return &pb.LoginResponse{
 		Sid: 111111,
 	}, nil
 

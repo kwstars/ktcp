@@ -66,8 +66,8 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 			continue
 		}
 
-		pReqID := "ID_ID_" + casee.ToUpperCase(string(method.Desc.Name())) + "_REQ"
-		pRespID := "ID_ID_" + casee.ToUpperCase(string(method.Desc.Name())) + "_RESP"
+		pReqID := "ID_ID_" + casee.ToUpperCase(string(method.Desc.Name())) + "_REQUEST"
+		pRespID := "ID_ID_" + casee.ToUpperCase(string(method.Desc.Name())) + "_RESPONSE"
 		sd.Methods = append(sd.Methods, &methodDesc{
 			Name:           string(method.Desc.Name()),
 			Request:        g.QualifiedGoIdent(method.Input.GoIdent),
@@ -75,23 +75,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 			ProtocolReqID:  pReqID,
 			ProtocolRespID: pRespID,
 		})
-
-		//g.QualifiedGoIdent(m.Input.GoIdent)
-		//rule, ok := proto.GetExtension(method.Desc.Options(), annotations.E_Http).(*annotations.HttpRule)
-		//if rule != nil && ok {
-		//	//for _, bind := range rule.AdditionalBindings {
-		//	//	sd.Methods = append(sd.Methods, buildHTTPRule(g, method, bind))
-		//	//}
-		//	//sd.Methods = append(sd.Methods, buildHTTPRule(g, method, rule))
-		//} else if !omitempty {
-		//	//path := fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.Desc.Name())
-		//	//sd.Methods = append(sd.Methods, buildMethodDesc(g, method, "POST", path))
-		//}
 	}
-
-	//for _, method := range sd.Methods {
-	//	g.P(method)
-	//}
 
 	if len(sd.Methods) != 0 {
 		g.P(sd.execute())

@@ -32,9 +32,9 @@ func main() {
 	go func() {
 		var count int32
 		for {
-			var id = v1.ID_ID_LOGIN_REQ
+			var id = v1.ID_ID_LOGIN_REQUEST
 			count++
-			req := &v1.LoginReq{
+			req := &v1.LoginRequest{
 				Token: "aaaaa",
 			}
 			data, err := codec.Marshal(req)
@@ -60,7 +60,7 @@ func main() {
 			panic(err)
 		}
 		if msg.Flag == 1 {
-			var respData v1.LoginResp
+			var respData v1.LoginResponse
 			if err := codec.Unmarshal(msg.Data, &respData); err != nil {
 				panic(err)
 			}

@@ -17,49 +17,49 @@ var _ = new(ktcp.Server)
 var _ = new(packing.Packer)
 
 type UserServiceKTCPServer interface {
-	CreateRole(context.Context, *CreateRoleReq) (*CreateRoleResp, error)
-	Login(context.Context, *LoginReq) (*LoginResp, error)
+	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 }
 
 func RegisterUserServiceKTCPServer(s *ktcp.Server, srv UserServiceKTCPServer) {
-	s.AddRoute(uint32(ID_ID_LOGIN_REQ), _UserService_Login0_KTCP_Handler(srv))
-	s.AddRoute(uint32(ID_ID_CREATE_ROLE_REQ), _UserService_CreateRole0_KTCP_Handler(srv))
+	s.AddRoute(uint32(ID_ID_LOGIN_REQUEST), _UserService_Login0_KTCP_Handler(srv))
+	s.AddRoute(uint32(ID_ID_CREATE_ROLE_REQUEST), _UserService_CreateRole0_KTCP_Handler(srv))
 }
 
 func _UserService_Login0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
 	return func(ctx ktcp.Context) error {
-		var in LoginReq
+		var in LoginRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Login(ctx, req.(*LoginReq))
+			return srv.Login(ctx, req.(*LoginRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_LOGIN_RESP), packing.ErrType, se)
+			return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
 		}
-		reply := out.(*LoginResp)
-		return ctx.Send(uint32(ID_ID_LOGIN_RESP), packing.OKType, reply)
+		reply := out.(*LoginResponse)
+		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
 	}
 }
 
 func _UserService_CreateRole0_KTCP_Handler(srv UserServiceKTCPServer) func(ctx ktcp.Context) error {
 	return func(ctx ktcp.Context) error {
-		var in CreateRoleReq
+		var in CreateRoleRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.CreateRole(ctx, req.(*CreateRoleReq))
+			return srv.CreateRole(ctx, req.(*CreateRoleRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			se := errors.FromError(err)
-			return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESP), packing.ErrType, se)
+			return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
 		}
-		reply := out.(*CreateRoleResp)
-		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESP), packing.OKType, reply)
+		reply := out.(*CreateRoleResponse)
+		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
 	}
 }
