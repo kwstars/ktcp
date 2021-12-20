@@ -3,6 +3,7 @@ package ktcp
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/kwstars/ktcp/message"
@@ -10,7 +11,7 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware"
 )
 
-var _ Context = (*RouterCtx)(nil)
+var _ Context = (*routerCtx)(nil)
 
 // Context is a generic context in a message routing.
 // It allows us to pass variables between handler and middlewares.
@@ -25,80 +26,84 @@ type Context interface {
 	Send(id uint32, flag uint16, resp interface{}) error
 	Middleware(middleware.Handler) middleware.Handler
 	Reset(sess *Session, reqMsg *message.Message)
+	Get(key string) (value interface{}, exists bool)
+	Set(key string, value interface{})
 }
 
-type RouterCtx struct {
+type routerCtx struct {
+	mu      sync.RWMutex
 	router  *Router
+	storage map[string]interface{}
 	session *Session
 	reqMsg  *message.Message
 	respMsg *message.Message
 }
 
-func (c *RouterCtx) Deadline() (time.Time, bool) {
+func (c *routerCtx) Deadline() (time.Time, bool) {
 	return c.Deadline()
 }
 
-func (c *RouterCtx) Done() <-chan struct{} {
+func (c *routerCtx) Done() <-chan struct{} {
 	return c.Done()
 }
 
-func (c *RouterCtx) Err() error {
+func (c *routerCtx) Err() error {
 	return c.Err()
 }
 
-func (c *RouterCtx) Value(key interface{}) interface{} {
+func (c *routerCtx) Value(key interface{}) interface{} {
 	return c.Value(key)
 }
 
 // NewRouterContext returns a new Context for the given request and response.
-func NewRouterContext(r *Router) *RouterCtx {
-	return &RouterCtx{
+func NewRouterContext(r *Router) *routerCtx {
+	return &routerCtx{
 		router: r,
 	}
 }
 
-func (c *RouterCtx) GetReqMsg() *message.Message {
+func (c *routerCtx) GetReqMsg() *message.Message {
 	return c.reqMsg
 }
 
-func (c *RouterCtx) GetRespMsg() *message.Message {
+func (c *routerCtx) GetRespMsg() *message.Message {
 	return c.respMsg
 }
 
-func (c *RouterCtx) GetRouter() *Router {
+func (c *routerCtx) GetRouter() *Router {
 	return c.router
 }
 
-func (c *RouterCtx) ForwardHandler(callback CallBack) {
+func (c *routerCtx) ForwardHandler(callback CallBack) {
 	c.session.callback = callback
 }
 
-func (c *RouterCtx) Reset(sess *Session, reqMsg *message.Message) {
+func (c *routerCtx) Reset(sess *Session, reqMsg *message.Message) {
 	c.session = sess
 	c.reqMsg = reqMsg
 	c.respMsg = nil
 }
 
-func (c *RouterCtx) Middleware(h middleware.Handler) middleware.Handler {
+func (c *routerCtx) Middleware(h middleware.Handler) middleware.Handler {
 	return middleware.Chain(c.router.srv.ms...)(h)
 }
 
-func (c *RouterCtx) GetSession() *Session {
+func (c *routerCtx) GetSession() *Session {
 	return c.session
 }
 
-func (c *RouterCtx) Bind(v interface{}) error {
+func (c *routerCtx) Bind(v interface{}) error {
 	if c.session.Codec() == nil {
 		return fmt.Errorf("message codec is nil")
 	}
 	return c.session.Codec().Unmarshal(c.reqMsg.Data, v)
 }
 
-func (c *RouterCtx) Response() *message.Message {
+func (c *routerCtx) Response() *message.Message {
 	return c.respMsg
 }
 
-func (c *RouterCtx) Send(id uint32, flag uint16, data interface{}) error {
+func (c *routerCtx) Send(id uint32, flag uint16, data interface{}) error {
 
 	codec := c.session.Codec()
 	if codec == nil {
@@ -116,4 +121,22 @@ func (c *RouterCtx) Send(id uint32, flag uint16, data interface{}) error {
 	}
 
 	return c.session.Send(c)
+}
+
+// Get implements Context.Get method.
+func (c *routerCtx) Get(key string) (value interface{}, exists bool) {
+	c.mu.RLock()
+	value, exists = c.storage[key]
+	c.mu.RUnlock()
+	return
+}
+
+// Set implements Context.Set method.
+func (c *routerCtx) Set(key string, value interface{}) {
+	c.mu.Lock()
+	if c.storage == nil {
+		c.storage = make(map[string]interface{})
+	}
+	c.storage[key] = value
+	c.mu.Unlock()
 }

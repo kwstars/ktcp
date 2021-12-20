@@ -10,7 +10,7 @@ import (
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 // HandlerFunc defines a function to serve HTTP requests.
-type HandlerFunc func(Context) error
+type HandlerFunc func(ctx Context) error
 
 type HandlersChain []HandlerFunc
 
@@ -58,34 +58,34 @@ func (r *Router) register(id uint32, h HandlerFunc, m ...HandlerFunc) {
 //}
 
 // Handle registers a new route with a matcher for the URL path and method.
-func (r *Router) Handle(ctx Context) {
-	reqMsg := ctx.GetReqMsg()
+//func (r *Router) Handle(ctx Context) {
+//reqMsg := ctx.GetReqMsg()
 
-	if reqMsg == nil {
-		return
-	}
+//if reqMsg == nil {
+//	return
+//}
 
-	var h HandlerFunc
-	if v, exist := r.mux[reqMsg.ID]; exist {
-		h = v
-	} else {
-		r.log.Errorf("router not found id: %d, idType: %T", reqMsg.ID, reqMsg.ID)
-		return
-	}
+//var h HandlerFunc
+//if v, exist := r.mux[reqMsg.ID]; exist {
+//	h = v
+//} else {
+//	r.log.Errorf("router not found id: %d, idType: %T", reqMsg.ID, reqMsg.ID)
+//	return
+//}
 
-	//TODO 中间件 recover  log tracing
-	if err := h(ctx); err != nil {
-		//r.srv.ene(ctx, err)
-		r.log.Errorf("handle err: %v", err)
-	}
+//TODO 中间件 recover  log tracing
+//if err := h(ctx); err != nil {
+//	//r.srv.ene(ctx, err)
+//	r.log.Errorf("handle err: %v", err)
+//}
 
-	////if v, has := r.middlewaresMapper[ctx.reqEntry.ID]; has {
-	////	mws = append(mws, v...) // append to global ones
-	////}
-	//
-	//// create the handlers stack
-	//wrapped := r.wrapHandlers(handler)
-	//
-	//// and call the handlers stack
-	//wrapped(ctx
-}
+////if v, has := r.middlewaresMapper[ctx.reqEntry.ID]; has {
+////	mws = append(mws, v...) // append to global ones
+////}
+//
+//// create the handlers stack
+//wrapped := r.wrapHandlers(handler)
+//
+//// and call the handlers stack
+//wrapped(ctx
+//}
