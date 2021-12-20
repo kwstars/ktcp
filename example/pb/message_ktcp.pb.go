@@ -28,6 +28,9 @@ func Router(ctx ktcp.Context, srv UserServiceKTCPServer) {
 		UserService_Login0_KTCP_Handler(ctx, srv)
 	case uint32(ID_ID_CREATE_ROLE_REQUEST):
 		UserService_CreateRole0_KTCP_Handler(ctx, srv)
+	default:
+
+		return
 	}
 }
 

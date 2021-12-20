@@ -26,8 +26,6 @@ type Context interface {
 	Send(id uint32, flag uint16, resp interface{}) error
 	Middleware(middleware.Handler) middleware.Handler
 	Reset(sess *Session, reqMsg *message.Message)
-	Get(key string) (value interface{}, exists bool)
-	Set(key string, value interface{})
 }
 
 type routerCtx struct {
@@ -121,22 +119,4 @@ func (c *routerCtx) Send(id uint32, flag uint16, data interface{}) error {
 	}
 
 	return c.session.Send(c)
-}
-
-// Get implements Context.Get method.
-func (c *routerCtx) Get(key string) (value interface{}, exists bool) {
-	c.mu.RLock()
-	value, exists = c.storage[key]
-	c.mu.RUnlock()
-	return
-}
-
-// Set implements Context.Set method.
-func (c *routerCtx) Set(key string, value interface{}) {
-	c.mu.Lock()
-	if c.storage == nil {
-		c.storage = make(map[string]interface{})
-	}
-	c.storage[key] = value
-	c.mu.Unlock()
 }
