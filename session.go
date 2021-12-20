@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -38,6 +39,7 @@ type Session struct {
 	callback   CallBack
 	log        *log.Helper
 	cancelFunc context.CancelFunc
+	pool       *sync.Pool
 }
 
 func (s *Session) Codec() encoding.Codec {
@@ -56,6 +58,7 @@ func newSession(conn net.Conn, s *Server, cancelFunc context.CancelFunc) (sess *
 		codec:      s.Codec,
 		callback:   s.callback,
 		log:        s.log,
+		pool:       s.pool,
 	}
 
 	sess.connected.SetTrue()
@@ -87,7 +90,7 @@ func (s *Session) Close() {
 }
 
 // readInbound reads message packet from connection in a loop.
-func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, router *Router, timeout time.Duration) {
+func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, timeout time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -115,10 +118,10 @@ func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, rou
 
 			// handle request
 			go func() {
-				routerCtx := router.pool.Get().(Context)
+				routerCtx := s.pool.Get().(*routerCtx)
 				routerCtx.Reset(s, reqMsg)
 				s.callback.OnMessage(routerCtx)
-				router.pool.Put(routerCtx)
+				s.pool.Put(routerCtx)
 			}()
 		}
 	}

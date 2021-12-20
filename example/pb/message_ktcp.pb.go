@@ -6,6 +6,7 @@ package pb
 
 import (
 	context "context"
+	"fmt"
 
 	errors "github.com/go-kratos/kratos/v2/errors"
 	ktcp "github.com/kwstars/ktcp"
@@ -22,15 +23,18 @@ type UserServiceKTCPServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 }
 
-func Router(ctx ktcp.Context, srv UserServiceKTCPServer) {
-	switch uint32(ctx.GetReqMsg().ID) {
-	case uint32(ID_ID_LOGIN_REQUEST):
-		UserService_Login0_KTCP_Handler(ctx, srv)
-	case uint32(ID_ID_CREATE_ROLE_REQUEST):
-		UserService_CreateRole0_KTCP_Handler(ctx, srv)
-	default:
+type handlerFunc func(ctx ktcp.Context, srv UserServiceKTCPServer) error
 
-		return
+var handleFunces = map[uint32]handlerFunc{
+	uint32(ID_ID_LOGIN_REQUEST):       UserService_Login0_KTCP_Handler,
+	uint32(ID_ID_CREATE_ROLE_REQUEST): UserService_CreateRole0_KTCP_Handler,
+}
+
+func Router(ctx ktcp.Context, srv UserServiceKTCPServer) (err error) {
+	if f, exist := handleFunces[uint32(ctx.GetReqMsg().ID)]; !exist {
+		return fmt.Errorf("not found handler func for %v", ctx.GetReqMsg().ID)
+	} else {
+		return f(ctx, srv)
 	}
 }
 

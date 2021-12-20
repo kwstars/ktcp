@@ -3,7 +3,6 @@ package ktcp
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/kwstars/ktcp/message"
@@ -19,7 +18,7 @@ type Context interface {
 	context.Context
 	GetSession() *Session
 	ForwardHandler(c CallBack)
-	GetRouter() *Router
+	//GetRouter() *Router
 	GetReqMsg() *message.Message
 	Bind(v interface{}) error
 	Response() *message.Message
@@ -29,12 +28,16 @@ type Context interface {
 }
 
 type routerCtx struct {
-	mu      sync.RWMutex
-	router  *Router
-	storage map[string]interface{}
+	//mu sync.RWMutex
+	//router  *Router
+	//storage map[string]interface{}
 	session *Session
 	reqMsg  *message.Message
 	respMsg *message.Message
+}
+
+func NewContext() *routerCtx {
+	return &routerCtx{}
 }
 
 func (c *routerCtx) Deadline() (time.Time, bool) {
@@ -53,23 +56,8 @@ func (c *routerCtx) Value(key interface{}) interface{} {
 	return c.Value(key)
 }
 
-// NewRouterContext returns a new Context for the given request and response.
-func NewRouterContext(r *Router) *routerCtx {
-	return &routerCtx{
-		router: r,
-	}
-}
-
 func (c *routerCtx) GetReqMsg() *message.Message {
 	return c.reqMsg
-}
-
-func (c *routerCtx) GetRespMsg() *message.Message {
-	return c.respMsg
-}
-
-func (c *routerCtx) GetRouter() *Router {
-	return c.router
 }
 
 func (c *routerCtx) ForwardHandler(callback CallBack) {
@@ -83,7 +71,9 @@ func (c *routerCtx) Reset(sess *Session, reqMsg *message.Message) {
 }
 
 func (c *routerCtx) Middleware(h middleware.Handler) middleware.Handler {
-	return middleware.Chain(c.router.srv.ms...)(h)
+	//TODO middleware
+
+	return middleware.Chain()(h)
 }
 
 func (c *routerCtx) GetSession() *Session {

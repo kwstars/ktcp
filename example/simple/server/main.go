@@ -44,7 +44,9 @@ func (s *UserService) OnClose(c *ktcp.Session) {
 func (s *UserService) OnMessage(ctx ktcp.Context) {
 	fmt.Printf("on userService message: %s, uid: %v\n", ctx.GetSession().ID(), s.uid)
 
-	pb.Router(ctx, s)
+	if err := pb.Router(ctx, s); err != nil {
+		fmt.Printf("on userService message error: %v\n", err)
+	}
 }
 
 type Gate struct {
