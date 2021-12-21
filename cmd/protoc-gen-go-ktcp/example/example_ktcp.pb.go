@@ -6,13 +6,15 @@ package example
 
 import (
 	context "context"
-	"fmt"
-
+	fmt "fmt"
 	errors "github.com/go-kratos/kratos/v2/errors"
 	ktcp "github.com/kwstars/ktcp"
 	packing "github.com/kwstars/ktcp/packing"
 )
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the kratos package it is being compiled against.
+var _ = new(fmt.Stringer)
 var _ = new(context.Context)
 var _ = new(errors.Error)
 var _ = new(ktcp.Server)

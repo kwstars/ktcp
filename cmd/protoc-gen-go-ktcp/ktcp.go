@@ -13,6 +13,7 @@ const (
 	transportKTCPPackage = protogen.GoImportPath("github.com/kwstars/ktcp")
 	errorsPackage        = protogen.GoImportPath("github.com/go-kratos/kratos/v2/errors")
 	packingPackage       = protogen.GoImportPath("github.com/kwstars/ktcp/packing")
+	fmtPackage           = protogen.GoImportPath("fmt")
 )
 
 // generateFile generates a _http.pb.go file containing kratos errors definitions.
@@ -37,8 +38,9 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	if len(file.Services) == 0 {
 		return
 	}
-	//g.P("// This is a compile-time assertion to ensure that this generated file")
-	//g.P("// is compatible with the kratos package it is being compiled against.")
+	g.P("// This is a compile-time assertion to ensure that this generated file")
+	g.P("// is compatible with the kratos package it is being compiled against.")
+	g.P("var _ = new(", fmtPackage.Ident("Stringer"), ")")
 	g.P("var _ = new(", contextPackage.Ident("Context"), ")")
 	g.P("var _ = new(", errorsPackage.Ident("Error"), ")")
 	g.P("var _ = new(", transportKTCPPackage.Ident("Server"), ")")
