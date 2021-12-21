@@ -204,6 +204,14 @@ func (s *Server) Serve() error {
 
 // handleRawConn handles the connection
 func (s *Server) handleRawConn(conn net.Conn) {
+	if s.quit.HasFired() {
+		conn.Close()
+		return
+	}
+
+	// TODO 是否要设置超时时间
+	//conn.SetDeadline(time.Now().Add(s.opts.con))
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	sess := newSession(conn, s, cancelFunc)
@@ -239,6 +247,9 @@ func (s *Server) Stop(ctx context.Context) (err error) {
 
 	return
 }
+
+// TODO GracefulStop
+func (s *Server) GracefulStop() {}
 
 func (s *Server) removeSession(sess *Session) {
 	s.sessions.Delete(sess.ID())
