@@ -73,11 +73,20 @@ func (s *Session) ID() string {
 
 // Send pushes response message entry to respQueue.
 func (s *Session) Send(ctx Context) (err error) {
-	if s.connected.IsSet() {
-		s.respQueue <- ctx
-		return nil
+	outboundMsg, err := s.packResponse(ctx)
+	if err != nil {
+		return fmt.Errorf("session %s pack outbound message err: %s", s.id, err)
 	}
-	return ErrSessionClosed
+
+	if outboundMsg == nil {
+		return fmt.Errorf("session %s out message is nil", s.id)
+	}
+
+	if err = s.attemptConnWrite(outboundMsg, 1); err != nil {
+		return fmt.Errorf("session %s conn write err: %s", s.id, err)
+	}
+
+	return
 }
 
 // Close closes the session, but doesn't close the connection.
@@ -90,39 +99,28 @@ func (s *Session) Close() {
 }
 
 // readInbound reads message packet from connection in a loop.
-func (s *Session) readInbound(ctx context.Context, doneChan chan<- struct{}, timeout time.Duration) {
+func (s *Session) readInbound(ctx context.Context) (err error) {
 	for {
 		select {
 		case <-ctx.Done():
 			s.log.Info("readInbound", ctx.Err())
 			return
 		default:
-			if timeout > 0 {
-				if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-					s.log.Errorf("session %s set read deadline err: %s", s.id, err)
-					doneChan <- struct{}{}
-					return
-				}
-			}
-
 			reqMsg, err := s.packer.Unpack(s.conn)
 			if err != nil {
-				s.log.Errorf("session %s unpack inbound packet err: %s", s.id, err)
-				doneChan <- struct{}{}
-				return
+				return fmt.Errorf("session %s unpack inbound packet err: %s", s.id, err)
 			}
 
 			if reqMsg == nil {
 				continue
 			}
 
-			// handle request
-			go func() {
+			go func(ctx context.Context) {
 				routerCtx := s.pool.Get().(*routerCtx)
 				routerCtx.Reset(s, reqMsg)
 				s.callback.OnMessage(routerCtx)
 				s.pool.Put(routerCtx)
-			}()
+			}(ctx)
 		}
 	}
 }

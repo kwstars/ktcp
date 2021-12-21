@@ -2,18 +2,19 @@ package ktcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/kwstars/ktcp/packing"
+	"github.com/kwstars/ktcp/internal/ksync"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/kwstars/ktcp/encoding"
 	"github.com/kwstars/ktcp/encoding/proto"
-	"github.com/kwstars/ktcp/sync/atomic"
+	"github.com/kwstars/ktcp/packing"
 )
 
 // Byte unit helpers.
@@ -76,17 +77,13 @@ func Middleware(m ...middleware.Middleware) ServerOption {
 }
 
 // ErrServerStopped is returned when server stopped.
-var ErrServerStopped = fmt.Errorf("server stopped")
+var ErrServerStopped = errors.New("ktcp: the server has been stopped")
 
 // ServerOption is an HTTP server option.
 type ServerOption func(*Server)
 
-// EncodeErrorFunc is used to encode an error.
-type EncodeErrorFunc func(Context, error)
-
 // Server is a server for TCP connections.
 type Server struct {
-	stopped               atomic.Bool
 	socketReadBufferSize  int
 	socketWriteBufferSize int
 	reqQueueSize          int
@@ -96,15 +93,16 @@ type Server struct {
 	writeTimeout          time.Duration
 	network               string
 	address               string
-	//mu                    sync.Mutex
-	Listener net.Listener
-	Packer   packing.Packer // Packer is the message packer, will be passed to session.
-	Codec    encoding.Codec // Codec is the message codec, will be passed to session.
-	callback Handler
-	log      *log.Helper
-	ms       []middleware.Middleware
-	serveWG  sync.WaitGroup
-	pool     *sync.Pool
+	Listener              net.Listener
+	Packer                packing.Packer // Packer is the message packer, will be passed to session.
+	Codec                 encoding.Codec // Codec is the message codec, will be passed to session.
+	callback              Handler
+	quit                  *ksync.Event
+	log                   *log.Helper
+	ms                    []middleware.Middleware
+	serveWG               sync.WaitGroup
+	pool                  *sync.Pool
+	sessions              sync.Map
 }
 
 // NewServer creates an TCP server by options.
@@ -125,6 +123,7 @@ func NewServer(handler Handler, opts ...ServerOption) *Server {
 		serveWG:               sync.WaitGroup{},
 		log:                   log.NewHelper(log.DefaultLogger),
 		pool:                  &sync.Pool{New: func() interface{} { return NewContext() }},
+		quit:                  ksync.NewEvent(),
 	}
 
 	logger := log.NewHelper(log.DefaultLogger)
@@ -145,7 +144,6 @@ func (s *Server) Serve() error {
 	}
 
 	s.log.Infof("start tcp server at %s", address.String())
-
 	lis, err := net.ListenTCP(s.network, address)
 	if err != nil {
 		return err
@@ -153,21 +151,12 @@ func (s *Server) Serve() error {
 
 	s.Listener = lis
 
-	return s.acceptLoop()
-}
-
-// acceptLoop accepts incoming connections and hands them off to an appropriate
-func (s *Server) acceptLoop() error {
-	var tempDelay time.Duration // how long to sleep on accept failure
+	var tempDelay time.Duration
 
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			if s.stopped.IsSet() {
-				return ErrServerStopped
-			}
-
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+			if ne, ok := err.(interface{ Temporary() bool }); ok && ne.Temporary() {
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
 				} else {
@@ -177,15 +166,22 @@ func (s *Server) acceptLoop() error {
 					tempDelay = max
 				}
 				s.log.Errorf("http: Accept error: %v; retrying in %v", err, tempDelay)
-				time.Sleep(tempDelay)
+				timer := time.NewTimer(tempDelay)
+				select {
+				case <-timer.C:
+				case <-s.quit.Done():
+					timer.Stop()
+					return nil
+				}
 				continue
+			}
+			if s.quit.HasFired() {
+				return nil
 			}
 			return err
 		}
 
-		if s.stopped.IsSet() {
-			return ErrServerStopped
-		}
+		tempDelay = 0
 
 		if s.socketReadBufferSize > 0 {
 			if err = conn.(*net.TCPConn).SetReadBuffer(s.socketReadBufferSize); err != nil {
@@ -198,7 +194,11 @@ func (s *Server) acceptLoop() error {
 			}
 		}
 
-		go s.handleRawConn(conn)
+		s.serveWG.Add(1)
+		go func() {
+			s.handleRawConn(conn)
+			s.serveWG.Done()
+		}()
 	}
 }
 
@@ -208,25 +208,39 @@ func (s *Server) handleRawConn(conn net.Conn) {
 
 	sess := newSession(conn, s, cancelFunc)
 
-	doneChan := make(chan struct{}, 2)
-
-	go sess.readInbound(ctx, doneChan, s.readTimeout)
-	go sess.writeOutbound(ctx, doneChan, s.writeTimeout, s.writeAttemptTimes)
+	s.sessions.Store(sess.ID(), sess)
+	defer func() {
+		s.removeSession(sess)
+	}()
 
 	s.callback.OnConnect(sess)
 
-	<-doneChan
+	if err := sess.readInbound(ctx); err != nil {
+		s.log.Errorf("session read inbound err: %s", err)
+	}
 
 	s.callback.OnClose(sess)
-
-	sess.Close()
 }
 
 // Stop the TCP server.
-func (s *Server) Stop(ctx context.Context) error {
-	s.stopped.SetTrue()
+func (s *Server) Stop(ctx context.Context) (err error) {
+	s.quit.Fire()
 
-	//TODO grace-shutdown
+	// close the listener
+	if err := s.Listener.Close(); err != nil {
+		s.log.Errorf("close listener err: %s", err)
+	}
 
-	return s.Listener.Close()
+	// close sessions
+	s.sessions.Range(func(k, v interface{}) bool {
+		v.(*Session).Close()
+		return true
+	})
+
+	return
+}
+
+func (s *Server) removeSession(sess *Session) {
+	s.sessions.Delete(sess.ID())
+	sess.Close()
 }
