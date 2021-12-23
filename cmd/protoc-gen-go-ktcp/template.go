@@ -44,10 +44,10 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler(ctx ktcp.Context, srv {{$svrTy
 	out, err := h(ctx, &in)
 	if err != nil {
 		se := errors.FromError(err)
-		return ctx.Send(uint32({{.ProtocolRespID}}), packing.ErrType, se)
+		return ctx.SendError(uint32({{.ProtocolRespID}}), se)
 	}
 	reply := out.(*{{.Reply}})
-	return ctx.Send(uint32({{.ProtocolRespID}}), packing.OKType, reply)
+	return ctx.Send(uint32({{.ProtocolRespID}}), reply)
 }
 {{end}}
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kwstars/ktcp/packing"
+
 	"github.com/kwstars/ktcp/message"
 
 	"github.com/go-kratos/kratos/v2/middleware"
@@ -21,7 +23,8 @@ type Context interface {
 	GetReqMsg() *message.Message
 	Bind(v interface{}) error
 	Response() *message.Message
-	Send(id uint32, flag uint16, resp interface{}) error
+	Send(id uint32, resp interface{}) error
+	SendError(id uint32, resp interface{}) error
 	Middleware(middleware.Handler) middleware.Handler
 	Reset(sess *Session, reqMsg *message.Message)
 }
@@ -87,7 +90,7 @@ func (c *routerCtx) Response() *message.Message {
 	return c.respMsg
 }
 
-func (c *routerCtx) Send(id uint32, flag uint16, data interface{}) error {
+func (c *routerCtx) Send(id uint32, data interface{}) error {
 
 	codec := c.session.Codec()
 	if codec == nil {
@@ -100,7 +103,27 @@ func (c *routerCtx) Send(id uint32, flag uint16, data interface{}) error {
 
 	c.respMsg = &message.Message{
 		ID:   id,
-		Flag: flag,
+		Flag: packing.OKType,
+		Data: dataRaw,
+	}
+
+	return c.session.Send(c)
+}
+
+func (c *routerCtx) SendError(id uint32, data interface{}) error {
+
+	codec := c.session.Codec()
+	if codec == nil {
+		return fmt.Errorf("message codec is nil")
+	}
+	dataRaw, err := codec.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	c.respMsg = &message.Message{
+		ID:   id,
+		Flag: packing.ErrType,
 		Data: dataRaw,
 	}
 

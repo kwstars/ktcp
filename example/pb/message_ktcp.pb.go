@@ -49,10 +49,10 @@ func _UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServe
 	out, err := h(ctx, &in)
 	if err != nil {
 		se := errors.FromError(err)
-		return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.ErrType, se)
+		return ctx.SendError(uint32(ID_ID_LOGIN_RESPONSE), se)
 	}
 	reply := out.(*LoginResponse)
-	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), packing.OKType, reply)
+	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), reply)
 }
 
 func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServer) error {
@@ -66,8 +66,8 @@ func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCP
 	out, err := h(ctx, &in)
 	if err != nil {
 		se := errors.FromError(err)
-		return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.ErrType, se)
+		return ctx.SendError(uint32(ID_ID_CREATE_ROLE_RESPONSE), se)
 	}
 	reply := out.(*CreateRoleResponse)
-	return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), packing.OKType, reply)
+	return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), reply)
 }
