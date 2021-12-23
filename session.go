@@ -29,17 +29,18 @@ type CallBack interface {
 
 // Session is a server side network connection.
 type Session struct {
-	connected  atomic.Bool
-	id         string                // session's ID. it's a UUID
-	conn       net.Conn              // tcp connection
-	respQueue  chan Context          // response queue channel, pushed in SendResp() and popped in writeOutbound()
-	reqQueue   chan *message.Message // request queue channel, pushed in readInbound() and popped in Handle()
-	packer     packing.Packer        // to pack and unpack message
-	codec      encoding.Codec        // encode/decode message data
-	callback   CallBack
-	log        *log.Helper
-	cancelFunc context.CancelFunc
-	pool       *sync.Pool
+	connected         atomic.Bool
+	writeAttemptTimes int
+	id                string                // session's ID. it's a UUID
+	conn              net.Conn              // tcp connection
+	respQueue         chan Context          // response queue channel, pushed in SendResp() and popped in writeOutbound()
+	reqQueue          chan *message.Message // request queue channel, pushed in readInbound() and popped in Handle()
+	packer            packing.Packer        // to pack and unpack message
+	codec             encoding.Codec        // encode/decode message data
+	callback          CallBack
+	log               *log.Helper
+	cancelFunc        context.CancelFunc
+	pool              *sync.Pool
 }
 
 func (s *Session) Codec() encoding.Codec {
@@ -49,16 +50,17 @@ func (s *Session) Codec() encoding.Codec {
 // newSession creates a new session.
 func newSession(conn net.Conn, s *Server, cancelFunc context.CancelFunc) (sess *Session) {
 	sess = &Session{
-		conn:       conn,
-		cancelFunc: cancelFunc,
-		id:         ksuid.New().String(),
-		reqQueue:   make(chan *message.Message, s.reqQueueSize),
-		respQueue:  make(chan Context, s.respQueueSize),
-		packer:     s.Packer,
-		codec:      s.Codec,
-		callback:   s.callback,
-		log:        s.log,
-		pool:       s.pool,
+		conn:              conn,
+		cancelFunc:        cancelFunc,
+		id:                ksuid.New().String(),
+		reqQueue:          make(chan *message.Message, s.reqQueueSize),
+		respQueue:         make(chan Context, s.respQueueSize),
+		writeAttemptTimes: s.writeAttemptTimes,
+		packer:            s.Packer,
+		codec:             s.Codec,
+		callback:          s.callback,
+		log:               s.log,
+		pool:              s.pool,
 	}
 
 	sess.connected.SetTrue()
@@ -82,7 +84,7 @@ func (s *Session) Send(ctx Context) (err error) {
 		return fmt.Errorf("session %s out message is nil", s.id)
 	}
 
-	if err = s.attemptConnWrite(outboundMsg, 1); err != nil {
+	if err = s.attemptConnWrite(outboundMsg, s.writeAttemptTimes); err != nil {
 		return fmt.Errorf("session %s conn write err: %s", s.id, err)
 	}
 
@@ -167,29 +169,20 @@ func (s *Session) writeOutbound(ctx context.Context, doneChan chan<- struct{}, w
 
 func (s *Session) attemptConnWrite(outboundMsg []byte, attemptTimes int) (err error) {
 	for i := 0; i < attemptTimes; i++ {
-		time.Sleep(tempErrDelay * time.Duration(i))
 		_, err = s.conn.Write(outboundMsg)
-
-		// breaks if err is not nil or it's the last attempt.
-		if err == nil || i == attemptTimes-1 {
-			break
+		if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
+				s.log.Info("session %s write attempt %d temporary err: %s", s.id, i+1, err)
+				time.Sleep(tempErrDelay * time.Duration(i))
+				continue
+			} else {
+				return fmt.Errorf("type assertion: %v, session %s write attempt %d err: %s", ok, s.id, i+1, err)
+			}
 		}
-
-		// check if err is `net.Error`
-		ne, ok := err.(net.Error)
-		if !ok {
-			break
-		}
-		if ne.Timeout() {
-			break
-		}
-		if ne.Temporary() {
-			s.log.Errorf("session %s conn write err: %s; retrying in %s", s.id, err, tempErrDelay*time.Duration(i+1))
-			continue
-		}
-		break // if err is not temporary, break the loop.
+		return
 	}
-	return
+
+	return fmt.Errorf("attemptConnWrite write failure threshold exceeded")
 }
 
 func (s *Session) packResponse(ctx Context) ([]byte, error) {

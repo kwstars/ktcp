@@ -112,7 +112,7 @@ func NewServer(handler Handler, opts ...ServerOption) *Server {
 		socketWriteBufferSize: 1 * MB,
 		reqQueueSize:          1024,
 		respQueueSize:         1024,
-		writeAttemptTimes:     1,
+		writeAttemptTimes:     3,
 		readTimeout:           3 * time.Second,
 		writeTimeout:          3 * time.Second,
 		network:               "tcp",
