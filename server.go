@@ -209,9 +209,6 @@ func (s *Server) handleRawConn(conn net.Conn) {
 		return
 	}
 
-	// TODO 是否要设置超时时间
-	//conn.SetDeadline(time.Now().Add(s.opts.con))
-
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	sess := newSession(conn, s, cancelFunc)

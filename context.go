@@ -91,7 +91,6 @@ func (c *routerCtx) Response() *message.Message {
 }
 
 func (c *routerCtx) Send(id uint32, data interface{}) error {
-
 	codec := c.session.Codec()
 	if codec == nil {
 		return fmt.Errorf("message codec is nil")
