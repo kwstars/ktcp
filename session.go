@@ -192,3 +192,24 @@ func (s *Session) packResponse(ctx Context) ([]byte, error) {
 	}
 	return s.packer.Pack(ctx.Response())
 }
+
+// SendMsg sends message to session.
+func (s *Session) SendMsg(id uint32, data interface{}) (err error) {
+	b, err := s.codec.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("session %s marshal data err: %s", s.id, err)
+	}
+
+	msg := &message.Message{
+		ID:   id,
+		Flag: packing.OKType,
+		Data: b,
+	}
+
+	pack, err := s.packer.Pack(msg)
+	if err != nil {
+		return fmt.Errorf("session %s pack message err: %s", s.id, err)
+	}
+
+	return s.attemptConnWrite(pack, s.writeAttemptTimes)
+}
