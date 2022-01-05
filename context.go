@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kwstars/ktcp/packing"
-
-	"github.com/kwstars/ktcp/message"
-
 	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/kwstars/ktcp/internal/sync/errgroup"
+	"github.com/kwstars/ktcp/message"
+	"github.com/kwstars/ktcp/packing"
+	"github.com/kwstars/ktcp/storage"
 )
 
 var _ Context = (*routerCtx)(nil)
@@ -27,10 +27,13 @@ type Context interface {
 	SendError(id uint32, resp interface{}) error
 	Middleware(middleware.Handler) middleware.Handler
 	Reset(sess *Session, reqMsg *message.Message)
+	AppendToStorage(saver storage.Saver)
+	Save() (err error)
 }
 
 type routerCtx struct {
 	session *Session
+	storage []storage.Saver
 	reqMsg  *message.Message
 	respMsg *message.Message
 }
@@ -55,6 +58,20 @@ func (c *routerCtx) Value(key interface{}) interface{} {
 	return c.Value(key)
 }
 
+func (c *routerCtx) Save() (err error) {
+	g := errgroup.Group{}
+	for _, saver := range c.storage {
+		s := saver
+		g.Go(func(ctx context.Context) error {
+			return s.Save(c)
+		})
+	}
+	if err = g.Wait(); err != nil {
+		return err
+	}
+	return
+}
+
 func (c *routerCtx) GetReqMsg() *message.Message {
 	return c.reqMsg
 }
@@ -65,6 +82,7 @@ func (c *routerCtx) ForwardHandler(callback CallBack) {
 
 func (c *routerCtx) Reset(sess *Session, reqMsg *message.Message) {
 	c.session = sess
+	c.storage = c.storage[:0]
 	c.reqMsg = reqMsg
 	c.respMsg = nil
 }
@@ -127,4 +145,8 @@ func (c *routerCtx) SendError(id uint32, data interface{}) error {
 	}
 
 	return c.session.Send(c)
+}
+
+func (c *routerCtx) AppendToStorage(saver storage.Saver) {
+	c.storage = append(c.storage, saver)
 }

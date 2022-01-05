@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/kwstars/ktcp/internal/sync/atomic"
+
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/kwstars/ktcp"
 	"github.com/kwstars/ktcp/example/pb"
-	"github.com/kwstars/ktcp/sync/atomic"
 )
 
 type UserService struct {

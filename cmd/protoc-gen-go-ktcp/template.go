@@ -46,6 +46,12 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_KTCP_Handler(ctx ktcp.Context, srv {{$svrTy
 		se := errors.FromError(err)
 		return ctx.SendError(uint32({{.ProtocolRespID}}), se)
 	}
+	if SaveErr := ctx.Save(); SaveErr != nil {
+		if SendErr := ctx.SendError(uint32({{.ProtocolRespID}}), errors.InternalServer("database", "数据库错误")); err != nil {
+			return fmt.Errorf("SaveErr: %v, SendErr: %v", SaveErr, SendErr)
+		}
+		return fmt.Errorf("%v", SaveErr)
+	}
 	reply := out.(*{{.Reply}})
 	return ctx.Send(uint32({{.ProtocolRespID}}), reply)
 }

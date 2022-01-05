@@ -53,6 +53,12 @@ func _UserService_Login0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCPServe
 		se := errors.FromError(err)
 		return ctx.SendError(uint32(ID_ID_LOGIN_RESPONSE), se)
 	}
+	if SaveErr := ctx.Save(); SaveErr != nil {
+		if SendErr := ctx.SendError(uint32(ID_ID_LOGIN_RESPONSE), errors.InternalServer("database", "数据库错误")); err != nil {
+			return fmt.Errorf("SaveErr: %v, SendErr: %v", SaveErr, SendErr)
+		}
+		return fmt.Errorf("%v", SaveErr)
+	}
 	reply := out.(*LoginResponse)
 	return ctx.Send(uint32(ID_ID_LOGIN_RESPONSE), reply)
 }
@@ -69,6 +75,12 @@ func _UserService_CreateRole0_KTCP_Handler(ctx ktcp.Context, srv UserServiceKTCP
 	if err != nil {
 		se := errors.FromError(err)
 		return ctx.SendError(uint32(ID_ID_CREATE_ROLE_RESPONSE), se)
+	}
+	if SaveErr := ctx.Save(); SaveErr != nil {
+		if SendErr := ctx.SendError(uint32(ID_ID_CREATE_ROLE_RESPONSE), errors.InternalServer("database", "数据库错误")); err != nil {
+			return fmt.Errorf("SaveErr: %v, SendErr: %v", SaveErr, SendErr)
+		}
+		return fmt.Errorf("%v", SaveErr)
 	}
 	reply := out.(*CreateRoleResponse)
 	return ctx.Send(uint32(ID_ID_CREATE_ROLE_RESPONSE), reply)
