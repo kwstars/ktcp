@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kwstars/ktcp/internal/sync/atomic"
+	"github.com/kwstars/ktcp/sync/atomic"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/kwstars/ktcp/encoding"

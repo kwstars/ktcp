@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/kwstars/ktcp/internal/sync/errgroup"
 	"github.com/kwstars/ktcp/message"
 	"github.com/kwstars/ktcp/packing"
 	"github.com/kwstars/ktcp/storage"
+	"github.com/kwstars/ktcp/sync/errgroup"
 )
 
 var _ Context = (*routerCtx)(nil)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kwstars/ktcp/internal/sync/atomic"
+	"github.com/kwstars/ktcp/sync/atomic"
 
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/kwstars/ktcp"

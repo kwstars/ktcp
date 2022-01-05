@@ -5,5 +5,5 @@ import (
 )
 
 type Saver interface {
-	Save(ctx context.Context) error
+	Save(ctx context.Context) (err error)
 }
