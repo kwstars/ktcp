@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/go-kratos/kratos/v2 v2.6.2
 	github.com/segmentio/ksuid v1.0.4
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.2
 	google.golang.org/protobuf v1.29.0
